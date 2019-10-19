@@ -1,0 +1,5 @@
+/venv/*
+.idea/
+logisticregressionfromnet.py
+linearregressionfromnet.py
+data.csv

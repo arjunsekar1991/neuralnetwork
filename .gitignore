@@ -1,5 +1,11 @@
 /venv/*
 .idea/
-logisticregressionfromnet.py
+NeuralNetwork.py
+NN_classifier.py
+sample.py
+test.py
+utils.py
 linearregressionfromnet.py
 data.csv
+seeds_dataset.csv
+/__pycache__

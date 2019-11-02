@@ -2,13 +2,15 @@ import random
 import numpy
 import math
 class NeuralNetwork:
-    def __init__(self, inputNeurons, hiddenLayers, outputNeurons):
+    def __init__(self, inputNeurons, hiddenLayers, outputNeurons,lamda):
         self.inputNeurons = inputNeurons
         self.hiddenLayers=hiddenLayers
         self.outputNeurons=outputNeurons
         self.multiLayerPercepton = []
         self.buildMultiLayerPercepton()
         self.numberOfLayers = len(self.multiLayerPercepton)
+        self.lamda =lamda
+        self.m=None
     def buildMultiLayerPercepton(self):
         print("hi")
 
@@ -42,13 +44,15 @@ class NeuralNetwork:
         return inputData
 
     def fit(self,XTrain,YTrain,learningRate=0.5,maxIteration=1):
+        self.m=len(XTrain)
         for maxIterationCounter in range(maxIteration):
             for XTrain_,YTrain_ in zip(XTrain,YTrain):
                 self.feedForward(XTrain_)
                 self.backPropagate(self.oneHotEncoding(YTrain_,self.outputNeurons))
-                self.updateThetas(XTrain_, learningRate) # update weights (update node["weight"])
+                self.updateThetas(XTrain_, learningRate)
     def sigmoid(self, input):
-        return 1/(1+math.exp(-input))
+        input = float(input)
+        return 1/(1+numpy.exp(-input))
 
     def sigmoidDerivative(self, input):
         return input*(1.0-input)
@@ -63,22 +67,20 @@ class NeuralNetwork:
 
         for layerCounter in reversed(range(self.numberOfLayers)):
             if layerCounter == self.numberOfLayers - 1:
-    
+
                 for index, neuron in enumerate(self.multiLayerPercepton[layerCounter]):
                     cost = neuron['output'] - oneHotEncodedClassLabel[index]
                     neuron['delta'] = cost * self.sigmoidDerivative(neuron['output'])
             else:
 
                 for index, neuron in enumerate(self.multiLayerPercepton[layerCounter]):
-                    cost = sum([neurons_['thetas'][index] * neurons_['delta'] for neurons_ in self.multiLayerPercepton[layerCounter+1]])
-
-                    #err = sum([node_['weights'][j] * node_['delta'] for node_ in self.network[i+1]])+10*node['weights'][j]
+                    cost = sum([neurons_['thetas'][index] * neurons_['delta'] for neurons_ in self.multiLayerPercepton[layerCounter+1]])+(self.lamda/self.m)*neuron['thetas'][index]
                     neuron['delta'] = cost * self.sigmoidDerivative(neuron['output'])
 
 
     def updateThetas(self, x, eta):
         for index, neurons in enumerate(self.multiLayerPercepton):
-            
+
             if index == 0:
                 inputs = x
             else:
@@ -88,8 +90,8 @@ class NeuralNetwork:
                 for inputCounter, input in enumerate(inputs):
 
                      neuron['thetas'][inputCounter] += - eta * neuron['delta'] * input
-    def predict(self, input):
-        ypred = numpy.array([numpy.argmax(self.feedForward(input_)) for input_ in input], dtype=numpy.int)
+    def predict(self, yActual):
+        ypred = numpy.array([numpy.argmax(self.feedForward(input_)) for input_ in yActual], dtype=numpy.int)
         return ypred
 #cls = NeuralNetwork(2,[3],2)
 #print(cls.multiLayerPercepton)

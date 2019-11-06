@@ -10,7 +10,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 import warnings
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelBinarizer
-
+from random import seed
 warnings.filterwarnings('ignore')
 from sklearn.metrics import roc_auc_score
 from sklearn import metrics
@@ -18,6 +18,7 @@ class NeuralNetwork:
     def __init__(self,inputNeurons, hiddenLayers, outputNeurons,regularization):
         self.regularization = regularization
         self.neuralNetwork = self.buildNetwork(inputNeurons, hiddenLayers, outputNeurons)
+        seed(2)
 
     def buildNetwork(self,inputNeurons, hiddenLayers, outputNeurons):
         neuralNetwork = list()
@@ -128,7 +129,7 @@ class NeuralNetwork:
     def predict(self, X):
         softmaxPredictions = self.feedForwardPropagation(self.neuralNetwork, X)
         return softmaxPredictions.index(max(softmaxPredictions))
-    seed(2)
+
     #below code is copied from internet
     def multiclass_roc_auc_score(self,y_test, y_pred, average="macro"):
         lb = LabelBinarizer()

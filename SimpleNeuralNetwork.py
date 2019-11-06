@@ -1,15 +1,17 @@
 import random
-from builtins import print
+from sklearn.preprocessing import LabelBinarizer
 from math import exp
 from random import seed
+import warnings
 import numpy
 import pandas
 import seaborn as sns
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, classification_report
-import warnings
+from sklearn.metrics import confusion_matrix, classification_report, roc_curve, auc
+from builtins import print
+
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import LabelBinarizer
+
 
 warnings.filterwarnings('ignore')
 from sklearn.metrics import roc_auc_score
@@ -17,26 +19,27 @@ from sklearn import metrics
 class NeuralNetwork:
     def __init__(self,inputNeurons, hiddenLayers, outputNeurons):
         self.neuralNetwork = self.buildNetwork(inputNeurons, hiddenLayers, outputNeurons)
+        random.seed(2)
 
     def buildNetwork(self,inputNeurons, hiddenLayers, outputNeurons):
         neuralNetwork = list()
-        inputLayer = [{'thetas':[random.random() for thetaCounter in range(inputNeurons + 1)]} for i in range(inputNeurons)]
+        inputLayer = [{'thetas':[random.random()   for thetaCounter in range(inputNeurons + 1)]} for i in range(inputNeurons)]
         neuralNetwork.append(inputLayer)
         for index,hiddenNeurons in enumerate(hiddenLayers):
             #print("important logic",index,hiddenNeurons)
             if len(hiddenLayers) == 1:
                 #print("this must not run")
-                hiddenLayer = [{'thetas':[random.random() for thetaCounter in range(inputNeurons + 1)]} for i in range(hiddenNeurons)]
+                hiddenLayer = [{'thetas':[random.random()   for thetaCounter in range(inputNeurons + 1)]} for i in range(hiddenNeurons)]
                 neuralNetwork.append(hiddenLayer)
             else:
                 if index==0:
                     #print("index is zero")
-                    hiddenLayer = [{'thetas':[random.random() for thetaCounter in range(inputNeurons + 1)]} for i in range(hiddenNeurons)]
+                    hiddenLayer = [{'thetas':[random.random()   for thetaCounter in range(inputNeurons + 1)]} for i in range(hiddenNeurons)]
                     neuralNetwork.append(hiddenLayer)
                 else:
-                    hiddenLayer = [{'thetas':[random.random() for thetaCounter in range(hiddenLayers[index - 1] + 1)]} for i in range(hiddenNeurons)]
+                    hiddenLayer = [{'thetas':[random.random()  for thetaCounter in range(hiddenLayers[index - 1] + 1)]} for i in range(hiddenNeurons)]
                     neuralNetwork.append(hiddenLayer)
-        outputLayer = [{'thetas':[random.random() for thetaCounter in range(hiddenLayers[-1] + 1)]} for i in range(outputNeurons)]
+        outputLayer = [{'thetas':[random.random()   for thetaCounter in range(hiddenLayers[-1] + 1)]} for i in range(outputNeurons)]
         neuralNetwork.append(outputLayer)
 
         return neuralNetwork
@@ -92,14 +95,27 @@ class NeuralNetwork:
 
 
     def fit(self, Xtrain, YTrain, alpha, MAX_ITER, numberOfClassesToPredict):
+        costList=[]
 
         for iterationCounter in range(MAX_ITER):
+            cost=0.0
             for Xtrain_,YTrain_ in zip(Xtrain,YTrain):
                 self.feedForwardPropagation(self.neuralNetwork, Xtrain_)
                 oneHotEncodedOutput = self.oneHotEncoding(YTrain_,numberOfClassesToPredict)
                 self.backPropagation(self.neuralNetwork, oneHotEncodedOutput)
                 self.updateThetas(self.neuralNetwork, Xtrain_, alpha)
+            #print("index",iterationCounter)
+            #print("cost",cost)
+            costList.append(cost)
+            #print("current",costList[iterationCounter])
 
+            #costList[iterationCounter]=cost
+            #if iterationCounter != 0:
+                #print("previous",costList[iterationCounter-1])
+                #print("difference",costList[iterationCounter-1]-costList[iterationCounter])
+            #    if costList[iterationCounter]>costList[iterationCounter-1] or costList[iterationCounter-1]-costList[iterationCounter] <0.001 :
+                    #print("difference2",costList[iterationCounter]-costList[iterationCounter-1])
+            #        break
 
     def oneHotEncoding(self,YTrain_,numberOfClassesToPredict):
         oneHotEncodedOutput = [0 for _ in range(numberOfClassesToPredict)]
@@ -122,7 +138,7 @@ class NeuralNetwork:
     def predict(self, X):
         softmaxPredictions = self.feedForwardPropagation(self.neuralNetwork, X)
         return softmaxPredictions.index(max(softmaxPredictions))
-    seed(2)
+
     #below code is copied from internet
     def multiclass_roc_auc_score(self,y_test, y_pred, average="macro"):
         lb = LabelBinarizer()
@@ -137,54 +153,6 @@ class NeuralNetwork:
 
 
 
-
-rawData = pandas.read_csv('BSOM_DataSet_for_HW3.csv')
-dataWithColumnsRequired = rawData[['all_mcqs_avg_n20', 'all_NBME_avg_n4', 'CBSE_01', 'CBSE_02','LEVEL']]
-dataWithColumnsRequiredWithoutNull = dataWithColumnsRequired.dropna(axis = 0, how ='any')
-
-
-x = dataWithColumnsRequiredWithoutNull.drop('LEVEL',axis=1).values
-x = (x- x.min(axis=0)) / (x.max(axis=0) - x.min(axis=0))
-ynonfactor = dataWithColumnsRequiredWithoutNull.LEVEL
-
-y= dataWithColumnsRequiredWithoutNull.LEVEL.replace(to_replace=['A', 'B','C','D'], value=[0,1,2,3])
-
-
-XTrain,XTest,YTrain,YTest = train_test_split(x,y,test_size=0.2,shuffle=False)
-numberofInputs,numberofInputfeatures = XTrain.shape
-numberofoutputFeatures =len(numpy.unique(y))
-
-alpha = 0.1
-maxIteration =1000
-hiddenLayers = [5]
-
-
-
-
-
-
-clf = NeuralNetwork(numberofInputfeatures, hiddenLayers, numberofoutputFeatures)
-
-clf.fit( XTrain, YTrain, alpha, maxIteration, numberofoutputFeatures)
-
-
-
-predictionList = []
-for XTest_,YTest_ in zip(XTest,YTest):
-    prediction = clf.predict(XTest_)
-    predictionList.append(prediction)
-
-#print(YTest.values.tolist())
-#print(predictionList)
-#print(numpy.unique(YTrain))
-print(classification_report(YTest.values.tolist(), predictionList, labels=numpy.unique(YTrain)))
-
-sns.heatmap(confusion_matrix(YTest.values.tolist(), predictionList),annot=True)
-plt.show()
-#roc_auc_score(YTest.values.tolist(), predictionList)
-
-#fpr, tpr, thresholds = metrics.roc_curve()
-print(clf.multiclass_roc_auc_score(YTest.values.tolist(), predictionList))
 
 
 

@@ -23,7 +23,7 @@ def buildNetwork(inputNeurons, hiddenLayers, outputNeurons):
             neuralNetwork.append(hiddenLayer)
         else:
             if index==0:
-                print("index is zero")
+                #print("index is zero")
                 hiddenLayer = [{'thetas':[random.random() for thetaCounter in range(inputNeurons + 1)]} for i in range(hiddenNeurons)]
                 neuralNetwork.append(hiddenLayer)
             else:
@@ -73,15 +73,14 @@ def backward_propagate_error(network, expected):
 
 
 
-def update_weights(network, row, alpha):
-    for i in range(len(network)):
-        inputs = row
-        if i != 0:
-            inputs = [neuron['output'] for neuron in network[i - 1]]
-        for neuron in network[i]:
-            for j in range(len(inputs)):
-                neuron['thetas'][j] += alpha * neuron['delta'] * inputs[j]
-            neuron['thetas'][-1] += alpha * neuron['delta']
+def updateThetas(neuralNetwork, X, alpha):
+    for layerCounter in range(len(neuralNetwork)):
+        if layerCounter != 0:
+            X = [neuron['output'] for neuron in neuralNetwork[layerCounter - 1]]
+        for eachNeurons in neuralNetwork[layerCounter]:
+            for eachInput in range(len(X)):
+                eachNeurons['thetas'][eachInput] += alpha * eachNeurons['delta'] * X[eachInput]
+            eachNeurons['thetas'][-1] += alpha * eachNeurons['delta']
 
 
 
@@ -90,15 +89,15 @@ def fit(neuralNetwork, Xtrain, YTrain, alpha, MAX_ITER, numberOfClassesToPredict
     for iterationCounter in range(MAX_ITER):
         costDuringTraining = 0
         for Xtrain_,YTrain_ in zip(Xtrain,YTrain):
-            outputs = forwardPropagation(neuralNetwork, Xtrain_)
+            outputs = feedForwardPropagation(neuralNetwork, Xtrain_)
             oneHotEncodedOutput = oneHotEncoding(YTrain_,numberOfClassesToPredict)
             costDuringTraining += sum([(oneHotEncodedOutput[encodedOutputCounter]-outputs[encodedOutputCounter])**2 for encodedOutputCounter in range(len(oneHotEncodedOutput))])
             backward_propagate_error(neuralNetwork, oneHotEncodedOutput)
-            update_weights(neuralNetwork, Xtrain_, alpha)
+            updateThetas(neuralNetwork, Xtrain_, alpha)
 
 
 def oneHotEncoding(YTrain_,numberOfClassesToPredict):
-    oneHotEncodedOutput = [0 for i in range(numberOfClassesToPredict)]
+    oneHotEncodedOutput = [0 for _ in range(numberOfClassesToPredict)]
     oneHotEncodedOutput[YTrain_] = 1
     return oneHotEncodedOutput
 
@@ -111,16 +110,6 @@ def oneHotEncoding(YTrain_,numberOfClassesToPredict):
 
 
 
-def forwardPropagation(network, row):
-    inputs = row
-    for layer in network:
-        new_inputs = []
-        for neuron in layer:
-            z = calculateZ(neuron['thetas'], inputs)
-            neuron['output'] = calculateSigmoid(z)
-            new_inputs.append(neuron['output'])
-        inputs = new_inputs
-    return inputs
 
 def calculateZ(thetas, inputs):
     z = thetas[-1]
@@ -136,7 +125,7 @@ def sigmoidDerivative(output):
     return output * (1.0 - output)
 
 def predict(neuralNetwork, X):
-    softmaxPredictions = forwardPropagation(neuralNetwork, X)
+    softmaxPredictions = feedForwardPropagation(neuralNetwork, X)
     return softmaxPredictions.index(max(softmaxPredictions))
 seed(2)
 
@@ -184,9 +173,9 @@ for XTest_,YTest_ in zip(XTest,YTest):
     prediction = predict(neuralNetwork, XTest_)
     predictionList.append(prediction)
 
-print(YTest.values.tolist())
-print(predictionList)
-print(numpy.unique(YTrain))
+#print(YTest.values.tolist())
+#print(predictionList)
+#print(numpy.unique(YTrain))
 print(classification_report(YTest.values.tolist(), predictionList, labels=numpy.unique(YTrain)))
 
 sns.heatmap(confusion_matrix(YTest.values.tolist(), predictionList),annot=True)

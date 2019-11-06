@@ -31,23 +31,23 @@ print(XTrain.shape,XTest.shape)
 
 def initialize_network(n_inputs, n_hidden, n_outputs):
     network = list()
-    input_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_inputs + 1)]} for i in range(n_inputs)]
+    input_layer = [{'weights':[random.random() for i in range(n_inputs + 1)]} for i in range(n_inputs)]
     network.append(input_layer)
     for index,x in enumerate(n_hidden):
         print("important logic",index,x)
         if len(n_hidden) == 1:
             print("this must not run")
-            hidden_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_inputs + 1)]} for i in range(x)]
+            hidden_layer = [{'weights':[random.random() for i in range(n_inputs + 1)]} for i in range(x)]
             network.append(hidden_layer)
         else:
             if index==0:
                 print("index is zero")
-                hidden_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_inputs + 1)]} for i in range(x)]
+                hidden_layer = [{'weights':[random.random() for i in range(n_inputs + 1)]} for i in range(x)]
                 network.append(hidden_layer)
             else:
-                hidden_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_hidden[index-1] + 1)]} for i in range(x)]
+                hidden_layer = [{'weights':[random.random() for i in range(n_hidden[index-1] + 1)]} for i in range(x)]
                 network.append(hidden_layer)
-    output_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_hidden[-1] + 1)]} for i in range(n_outputs)]
+    output_layer = [{'weights':[random.random() for i in range(n_hidden[-1] + 1)]} for i in range(n_outputs)]
     network.append(output_layer)
     i= 1
     print("\n The initialised Neural Network:\n")
@@ -58,6 +58,7 @@ def initialize_network(n_inputs, n_hidden, n_outputs):
             j=j+1
         i=i+1
     return network
+
 
 # Backpropagate error and store in neurons
 def backward_propagate_error(network, expected,n):
@@ -167,8 +168,8 @@ seed(2)
 
 numberofInputs,numberofInputfeatures = XTrain.shape
 numberofoutputs =4
-lamda = 1
-regulerization = 'L2'
+lamda = 10
+regulerization = 'L1'
 n_inputs = numberofInputfeatures
 print("\n Number of Inputs :\n",n_inputs)
 n_outputs = numberofoutputs

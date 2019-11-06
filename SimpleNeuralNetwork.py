@@ -13,23 +13,23 @@ warnings.filterwarnings('ignore')
 #seed(2)
 def initialize_network(n_inputs, n_hidden, n_outputs):
     network = list()
-    input_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_inputs + 1)]} for i in range(n_inputs)]
+    input_layer = [{'weights':[random.random() for i in range(n_inputs + 1)]} for i in range(n_inputs)]
     network.append(input_layer)
     for index,x in enumerate(n_hidden):
         print("important logic",index,x)
         if len(n_hidden) == 1:
             print("this must not run")
-            hidden_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_inputs + 1)]} for i in range(x)]
+            hidden_layer = [{'weights':[random.random() for i in range(n_inputs + 1)]} for i in range(x)]
             network.append(hidden_layer)
         else:
             if index==0:
                 print("index is zero")
-                hidden_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_inputs + 1)]} for i in range(x)]
+                hidden_layer = [{'weights':[random.random() for i in range(n_inputs + 1)]} for i in range(x)]
                 network.append(hidden_layer)
             else:
-                hidden_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_hidden[index-1] + 1)]} for i in range(x)]
+                hidden_layer = [{'weights':[random.random() for i in range(n_hidden[index-1] + 1)]} for i in range(x)]
                 network.append(hidden_layer)
-    output_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_hidden[-1] + 1)]} for i in range(n_outputs)]
+    output_layer = [{'weights':[random.random() for i in range(n_hidden[-1] + 1)]} for i in range(n_outputs)]
     network.append(output_layer)
     i= 1
     print("\n The initialised Neural Network:\n")
@@ -182,7 +182,7 @@ n_outputs = numberofoutputs
 print("\n Number of Outputs :\n",n_outputs)
 
 #Network Initialization
-network = initialize_network(n_inputs, [6,5], n_outputs)
+network = initialize_network(n_inputs, [17], n_outputs)
 
 # Training the Network
 train_network(network, XTrain,YTrain, 0.1, 1000, n_outputs)

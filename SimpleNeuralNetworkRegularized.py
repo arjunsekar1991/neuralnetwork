@@ -169,14 +169,14 @@ seed(2)
 numberofInputs,numberofInputfeatures = XTrain.shape
 numberofoutputs =4
 lamda = 10
-regulerization = 'L1'
+regulerization = 'L2'
 n_inputs = numberofInputfeatures
 print("\n Number of Inputs :\n",n_inputs)
 n_outputs = numberofoutputs
 print("\n Number of Outputs :\n",n_outputs)
 
 #Network Initialization
-network = initialize_network(n_inputs, [5,6], n_outputs)
+network = initialize_network(n_inputs, [5], n_outputs)
 
 # Training the Network
 train_network(network, XTrain,YTrain, 0.1, 1000, n_outputs)

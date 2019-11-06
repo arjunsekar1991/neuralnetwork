@@ -1,6 +1,6 @@
 import random
 from builtins import print
-
+from math import exp
 from random import seed
 import numpy
 import pandas
@@ -10,66 +10,46 @@ from sklearn.metrics import confusion_matrix, classification_report
 import warnings
 import matplotlib.pyplot as plt
 warnings.filterwarnings('ignore')
-#seed(2)
-def initialize_network(n_inputs, n_hidden, n_outputs):
-    network = list()
-    input_layer = [{'weights':[random.random() for i in range(n_inputs + 1)]} for i in range(n_inputs)]
-    network.append(input_layer)
-    for index,x in enumerate(n_hidden):
-        print("important logic",index,x)
-        if len(n_hidden) == 1:
-            print("this must not run")
-            hidden_layer = [{'weights':[random.random() for i in range(n_inputs + 1)]} for i in range(x)]
-            network.append(hidden_layer)
+
+def buildNetwork(inputNeurons, hiddenLayers, outputNeurons):
+    neuralNetwork = list()
+    inputLayer = [{'thetas':[random.random() for thetaCounter in range(inputNeurons + 1)]} for i in range(inputNeurons)]
+    neuralNetwork.append(inputLayer)
+    for index,hiddenNeurons in enumerate(hiddenLayers):
+        #print("important logic",index,hiddenNeurons)
+        if len(hiddenLayers) == 1:
+            #print("this must not run")
+            hiddenLayer = [{'thetas':[random.random() for thetaCounter in range(inputNeurons + 1)]} for i in range(hiddenNeurons)]
+            neuralNetwork.append(hiddenLayer)
         else:
             if index==0:
                 print("index is zero")
-                hidden_layer = [{'weights':[random.random() for i in range(n_inputs + 1)]} for i in range(x)]
-                network.append(hidden_layer)
+                hiddenLayer = [{'thetas':[random.random() for thetaCounter in range(inputNeurons + 1)]} for i in range(hiddenNeurons)]
+                neuralNetwork.append(hiddenLayer)
             else:
-                hidden_layer = [{'weights':[random.random() for i in range(n_hidden[index-1] + 1)]} for i in range(x)]
-                network.append(hidden_layer)
-    output_layer = [{'weights':[random.random() for i in range(n_hidden[-1] + 1)]} for i in range(n_outputs)]
-    network.append(output_layer)
-    i= 1
-    print("\n The initialised Neural Network:\n")
-    for layer in network:
-        j=1
-        for sub in layer:
-            print("\n Layer[%d] Node[%d]:\n" %(i,j),sub)
-            j=j+1
-        i=i+1
-    return network
+                hiddenLayer = [{'thetas':[random.random() for thetaCounter in range(hiddenLayers[index - 1] + 1)]} for i in range(hiddenNeurons)]
+                neuralNetwork.append(hiddenLayer)
+    outputLayer = [{'thetas':[random.random() for thetaCounter in range(hiddenLayers[-1] + 1)]} for i in range(outputNeurons)]
+    neuralNetwork.append(outputLayer)
 
-# Calculate neuron activation (net) for an input
+    return neuralNetwork
 
-def activate(weights, inputs):
-    activation = weights[-1]
-    for i in range(len(weights)-1):
-        activation += weights[i] * inputs[i]
-    return activation
 
-# Transfer neuron activation to sigmoid function
-def transfer(activation):
-    return 1.0 / (1.0 + exp(-activation))
 
-# Forward propagate input to a network output
-def forward_propagate(network, row):
-    inputs = row
-    for layer in network:
-        new_inputs = []
-        for neuron in layer:
-            activation = activate(neuron['weights'], inputs)
-            neuron['output'] = transfer(activation)
-            new_inputs.append(neuron['output'])
-        inputs = new_inputs
-    return inputs
 
-# Calculate the derivative of an neuron output
-def transfer_derivative(output):
-    return output * (1.0 - output)
 
-# Backpropagate error and store in neurons
+def feedForwardPropagation(neuralNetwork, X):
+    for eachLayer in neuralNetwork:
+        outputs = []
+        for neurons in eachLayer:
+            activation = calculateZ(neurons['thetas'], X)
+            neurons['output'] = calculateSigmoid(activation)
+            outputs.append(neurons['output'])
+        X = outputs
+    return X
+
+
+
 def backward_propagate_error(network, expected):
     for i in reversed(range(len(network))):
         layer = network[i]
@@ -80,7 +60,7 @@ def backward_propagate_error(network, expected):
             for j in range(len(layer)):
                 error = 0.0
                 for neuron in network[i + 1]:
-                    error += (neuron['weights'][j] * neuron['delta'])
+                    error += (neuron['thetas'][j] * neuron['delta'])
                 errors.append(error)
         else:
             for j in range(len(layer)):
@@ -89,76 +69,84 @@ def backward_propagate_error(network, expected):
 
         for j in range(len(layer)):
             neuron = layer[j]
-            neuron['delta'] = errors[j] * transfer_derivative(neuron['output'])
+            neuron['delta'] = errors[j] * sigmoidDerivative(neuron['output'])
 
 
-# Update network weights with error
-def update_weights(network, row, l_rate):
+
+def update_weights(network, row, alpha):
     for i in range(len(network)):
         inputs = row
         if i != 0:
             inputs = [neuron['output'] for neuron in network[i - 1]]
         for neuron in network[i]:
             for j in range(len(inputs)):
-                neuron['weights'][j] += l_rate * neuron['delta'] * inputs[j]
-            neuron['weights'][-1] += l_rate * neuron['delta']
+                neuron['thetas'][j] += alpha * neuron['delta'] * inputs[j]
+            neuron['thetas'][-1] += alpha * neuron['delta']
 
 
-# Train a network for a fixed number of epochs
-def train_network(network, Xtrain,YTrain, l_rate, n_epoch, n_outputs):
 
-    print("\n Network Training Begins:\n")
+def fit(neuralNetwork, Xtrain, YTrain, alpha, MAX_ITER, numberOfClassesToPredict):
 
-    for epoch in range(n_epoch):
-        sum_error = 0
+    for iterationCounter in range(MAX_ITER):
+        costDuringTraining = 0
         for Xtrain_,YTrain_ in zip(Xtrain,YTrain):
-            outputs = forward_propagate(network, Xtrain_)
-            expected = [0 for i in range(n_outputs)]
-            expected[YTrain_] = 1
-            sum_error += sum([(expected[i]-outputs[i])**2 for i in range(len(expected))])
-            backward_propagate_error(network, expected)
-            update_weights(network, Xtrain_, l_rate)
-        #print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, l_rate, sum_error))
-
-    print("\n Network Training Ends:\n")
+            outputs = forwardPropagation(neuralNetwork, Xtrain_)
+            oneHotEncodedOutput = oneHotEncoding(YTrain_,numberOfClassesToPredict)
+            costDuringTraining += sum([(oneHotEncodedOutput[encodedOutputCounter]-outputs[encodedOutputCounter])**2 for encodedOutputCounter in range(len(oneHotEncodedOutput))])
+            backward_propagate_error(neuralNetwork, oneHotEncodedOutput)
+            update_weights(neuralNetwork, Xtrain_, alpha)
 
 
+def oneHotEncoding(YTrain_,numberOfClassesToPredict):
+    oneHotEncodedOutput = [0 for i in range(numberOfClassesToPredict)]
+    oneHotEncodedOutput[YTrain_] = 1
+    return oneHotEncodedOutput
 
 
-from math import exp
 
-# Calculate neuron activation for an input
-def activate(weights, inputs):
-    activation = weights[-1]
-    for i in range(len(weights)-1):
-        activation += weights[i] * inputs[i]
-    return activation
 
-# Transfer neuron activation
-def transfer(activation):
-    return 1.0 / (1.0 + exp(-activation))
 
-# Forward propagate input to a network output
-def forward_propagate(network, row):
+
+
+
+
+
+def forwardPropagation(network, row):
     inputs = row
     for layer in network:
         new_inputs = []
         for neuron in layer:
-            activation = activate(neuron['weights'], inputs)
-            neuron['output'] = transfer(activation)
+            z = calculateZ(neuron['thetas'], inputs)
+            neuron['output'] = calculateSigmoid(z)
             new_inputs.append(neuron['output'])
         inputs = new_inputs
     return inputs
 
-# Make a prediction with a network
-def predict(network, XTest):
-    outputs = forward_propagate(network, XTest)
-    return outputs.index(max(outputs))
+def calculateZ(thetas, inputs):
+    z = thetas[-1]
+    for i in range(len(thetas)-1):
+        z += thetas[i] * inputs[i]
+    return z
+
+def calculateSigmoid(z):
+    return 1.0 / (1.0 + exp(-z))
 
 
+def sigmoidDerivative(output):
+    return output * (1.0 - output)
 
-#Test training backprop algorithm
+def predict(neuralNetwork, X):
+    softmaxPredictions = forwardPropagation(neuralNetwork, X)
+    return softmaxPredictions.index(max(softmaxPredictions))
 seed(2)
+
+
+
+
+
+
+
+
 
 rawData = pandas.read_csv('BSOM_DataSet_for_HW3.csv')
 dataWithColumnsRequired = rawData[['all_mcqs_avg_n20', 'all_NBME_avg_n4', 'CBSE_01', 'CBSE_02','LEVEL']]
@@ -171,41 +159,35 @@ ynonfactor = dataWithColumnsRequiredWithoutNull.LEVEL
 
 y= dataWithColumnsRequiredWithoutNull.LEVEL.replace(to_replace=['A', 'B','C','D'], value=[0,1,2,3])
 
-#print()
+
 XTrain,XTest,YTrain,YTest = train_test_split(x,y,test_size=0.2,shuffle=False)
 numberofInputs,numberofInputfeatures = XTrain.shape
-numberofoutputs =4
+numberofoutputFeatures =len(numpy.unique(y))
 
-n_inputs = numberofInputfeatures
-print("\n Number of Inputs :\n",n_inputs)
-n_outputs = numberofoutputs
-print("\n Number of Outputs :\n",n_outputs)
-
-#Network Initialization
-network = initialize_network(n_inputs, [17], n_outputs)
-
-# Training the Network
-train_network(network, XTrain,YTrain, 0.1, 1000, n_outputs)
+alpha = 0.1
+maxIteration =1000
+hiddenLayers = [5,7]
 
 
-print("\n Final Neural Network :")
 
-i= 1
-for layer in network:
-    j=1
-    for sub in layer:
-        print("\n Layer[%d] Node[%d]:\n" %(i,j),sub)
-        j=j+1
-    i=i+1
+
+
+
+
+neuralNetwork = buildNetwork(numberofInputfeatures, hiddenLayers, numberofoutputFeatures)
+fit(neuralNetwork, XTrain, YTrain, alpha, maxIteration, numberofoutputFeatures)
+
+
+
 predictionList = []
 for XTest_,YTest_ in zip(XTest,YTest):
-    prediction = predict(network, XTest_)
+    prediction = predict(neuralNetwork, XTest_)
     predictionList.append(prediction)
-    print('Expected=%d, Got=%d' % (YTest_, prediction))
+
 print(YTest.values.tolist())
 print(predictionList)
 print(numpy.unique(YTrain))
 print(classification_report(YTest.values.tolist(), predictionList, labels=numpy.unique(YTrain)))
 
-print(sns.heatmap(confusion_matrix(YTest.values.tolist(), predictionList),annot=True));
+sns.heatmap(confusion_matrix(YTest.values.tolist(), predictionList),annot=True)
 plt.show()

@@ -15,7 +15,8 @@ warnings.filterwarnings('ignore')
 from sklearn.metrics import roc_auc_score
 from sklearn import metrics
 class NeuralNetwork:
-    def __init__(self,inputNeurons, hiddenLayers, outputNeurons):
+    def __init__(self,inputNeurons, hiddenLayers, outputNeurons,regularization):
+        self.regularization = regularization
         self.neuralNetwork = self.buildNetwork(inputNeurons, hiddenLayers, outputNeurons)
 
     def buildNetwork(self,inputNeurons, hiddenLayers, outputNeurons):
@@ -57,7 +58,7 @@ class NeuralNetwork:
 
 
 
-    def backPropagation(self, network, expected):
+    def backPropagation(self, network, expected,n):
         for layerCounter in reversed(range(len(network))):
             layer = network[layerCounter]
 
@@ -77,7 +78,12 @@ class NeuralNetwork:
             for layerIterator in range(len(layer)):
                 neuron = layer[layerIterator]
                 neuron['delta'] = cost[layerIterator] * self.sigmoidDerivative(neuron['output'])
-
+                if layerCounter == len(network)-1 :
+                    if regularization == 'L2':
+                        rg = numpy.sum(network[layerCounter][layerIterator]['thetas']) / n
+                    if regularization == 'L1':
+                        rg = numpy.sum(numpy.where(numpy.array(network[layerCounter][layerIterator]['thetas'])<0,-1,1)) / n
+                    neuron['delta'] += lamda * rg
 
 
     def updateThetas(self,neuralNetwork, X, alpha):
@@ -92,12 +98,12 @@ class NeuralNetwork:
 
 
     def fit(self, Xtrain, YTrain, alpha, MAX_ITER, numberOfClassesToPredict):
-
+        n = len(Xtrain)
         for iterationCounter in range(MAX_ITER):
             for Xtrain_,YTrain_ in zip(Xtrain,YTrain):
                 self.feedForwardPropagation(self.neuralNetwork, Xtrain_)
                 oneHotEncodedOutput = self.oneHotEncoding(YTrain_,numberOfClassesToPredict)
-                self.backPropagation(self.neuralNetwork, oneHotEncodedOutput)
+                self.backPropagation(self.neuralNetwork, oneHotEncodedOutput,n)
                 self.updateThetas(self.neuralNetwork, Xtrain_, alpha)
 
 
@@ -157,13 +163,14 @@ numberofoutputFeatures =len(numpy.unique(y))
 alpha = 0.1
 maxIteration =1000
 hiddenLayers = [5]
+regularization = 'L1'
+#for l2 do not use smaller values of lambda
+lamda = 10
 
 
 
 
-
-
-clf = NeuralNetwork(numberofInputfeatures, hiddenLayers, numberofoutputFeatures)
+clf = NeuralNetwork(numberofInputfeatures, hiddenLayers, numberofoutputFeatures,regularization)
 
 clf.fit( XTrain, YTrain, alpha, maxIteration, numberofoutputFeatures)
 

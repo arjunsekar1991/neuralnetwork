@@ -1,16 +1,141 @@
 import random
 from builtins import print
-
+from math import exp
 from random import seed
 import numpy
-import numpy as np
 import pandas
-import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report
-import seaborn as sns
 import warnings
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import LabelBinarizer
+
 warnings.filterwarnings('ignore')
+from sklearn.metrics import roc_auc_score
+from sklearn import metrics
+class NeuralNetwork:
+    def __init__(self,inputNeurons, hiddenLayers, outputNeurons):
+        self.neuralNetwork = self.buildNetwork(inputNeurons, hiddenLayers, outputNeurons)
+
+    def buildNetwork(self,inputNeurons, hiddenLayers, outputNeurons):
+        neuralNetwork = list()
+        inputLayer = [{'thetas':[random.random() for thetaCounter in range(inputNeurons + 1)]} for i in range(inputNeurons)]
+        neuralNetwork.append(inputLayer)
+        for index,hiddenNeurons in enumerate(hiddenLayers):
+            #print("important logic",index,hiddenNeurons)
+            if len(hiddenLayers) == 1:
+                #print("this must not run")
+                hiddenLayer = [{'thetas':[random.random() for thetaCounter in range(inputNeurons + 1)]} for i in range(hiddenNeurons)]
+                neuralNetwork.append(hiddenLayer)
+            else:
+                if index==0:
+                    #print("index is zero")
+                    hiddenLayer = [{'thetas':[random.random() for thetaCounter in range(inputNeurons + 1)]} for i in range(hiddenNeurons)]
+                    neuralNetwork.append(hiddenLayer)
+                else:
+                    hiddenLayer = [{'thetas':[random.random() for thetaCounter in range(hiddenLayers[index - 1] + 1)]} for i in range(hiddenNeurons)]
+                    neuralNetwork.append(hiddenLayer)
+        outputLayer = [{'thetas':[random.random() for thetaCounter in range(hiddenLayers[-1] + 1)]} for i in range(outputNeurons)]
+        neuralNetwork.append(outputLayer)
+
+        return neuralNetwork
+
+
+
+
+
+    def feedForwardPropagation(self,neuralNetwork, X):
+        for eachLayer in neuralNetwork:
+            outputs = []
+            for neurons in eachLayer:
+                Z = self.calculateZ (neurons['thetas'], X)
+                neurons['output'] = self.calculateSigmoid(Z)
+                outputs.append(neurons['output'])
+            X = outputs
+        return X
+
+
+
+    def backPropagation(self, network, expected):
+        for layerCounter in reversed(range(len(network))):
+            layer = network[layerCounter]
+
+            cost = list()
+
+            if layerCounter != len(network)-1:
+                for layerIterator in range(len(layer)):
+                    smallDelta = 0
+                    for neuron in network[layerCounter + 1]:
+                        smallDelta += (neuron['thetas'][layerIterator] * neuron['delta'])
+                    cost.append(smallDelta)
+            else:
+                for layerIterator in range(len(layer)):
+                    neuron = layer[layerIterator]
+                    cost.append(expected[layerIterator] - neuron['output'])
+
+            for layerIterator in range(len(layer)):
+                neuron = layer[layerIterator]
+                neuron['delta'] = cost[layerIterator] * self.sigmoidDerivative(neuron['output'])
+
+
+
+    def updateThetas(self,neuralNetwork, X, alpha):
+        for layerCounter in range(len(neuralNetwork)):
+            if layerCounter != 0:
+                X = [neuron['output'] for neuron in neuralNetwork[layerCounter - 1]]
+            for eachNeurons in neuralNetwork[layerCounter]:
+                for eachInput in range(len(X)):
+                    eachNeurons['thetas'][eachInput] = eachNeurons['thetas'][eachInput]+alpha * eachNeurons['delta'] * X[eachInput]
+                eachNeurons['thetas'][-1] = eachNeurons['thetas'][-1] + alpha * eachNeurons['delta']
+
+
+
+    def fit(self, Xtrain, YTrain, alpha, MAX_ITER, numberOfClassesToPredict):
+
+        for iterationCounter in range(MAX_ITER):
+            for Xtrain_,YTrain_ in zip(Xtrain,YTrain):
+                self.feedForwardPropagation(self.neuralNetwork, Xtrain_)
+                oneHotEncodedOutput = self.oneHotEncoding(YTrain_,numberOfClassesToPredict)
+                self.backPropagation(self.neuralNetwork, oneHotEncodedOutput)
+                self.updateThetas(self.neuralNetwork, Xtrain_, alpha)
+
+
+    def oneHotEncoding(self,YTrain_,numberOfClassesToPredict):
+        oneHotEncodedOutput = [0 for _ in range(numberOfClassesToPredict)]
+        oneHotEncodedOutput[YTrain_] = 1
+        return oneHotEncodedOutput
+
+    def calculateZ(self,thetas, inputs):
+        z = thetas[-1]
+        for i in range(len(thetas)-1):
+            z += thetas[i] * inputs[i]
+        return z
+
+    def calculateSigmoid(self,z):
+        return 1.0 / (1.0 + exp(-z))
+
+
+    def sigmoidDerivative(self,output):
+        return output * (1.0 - output)
+
+    def predict(self, X):
+        softmaxPredictions = self.feedForwardPropagation(self.neuralNetwork, X)
+        return softmaxPredictions.index(max(softmaxPredictions))
+    seed(2)
+    #below code is copied from internet
+    def multiclass_roc_auc_score(self,y_test, y_pred, average="macro"):
+        lb = LabelBinarizer()
+        lb.fit(y_test)
+        y_test = lb.transform(y_test)
+        y_pred = lb.transform(y_pred)
+        return roc_auc_score(y_test, y_pred, average=average)
+
+
+
+
+
+
 
 
 rawData = pandas.read_csv('BSOM_DataSet_for_HW3.csv')
@@ -24,183 +149,42 @@ ynonfactor = dataWithColumnsRequiredWithoutNull.LEVEL
 
 y= dataWithColumnsRequiredWithoutNull.LEVEL.replace(to_replace=['A', 'B','C','D'], value=[0,1,2,3])
 
-#print()
+
 XTrain,XTest,YTrain,YTest = train_test_split(x,y,test_size=0.2,shuffle=False)
-print(XTrain.shape,XTest.shape)
-
-
-def initialize_network(n_inputs, n_hidden, n_outputs):
-    network = list()
-    input_layer = [{'weights':[random.random() for i in range(n_inputs + 1)]} for i in range(n_inputs)]
-    network.append(input_layer)
-    for index,x in enumerate(n_hidden):
-        print("important logic",index,x)
-        if len(n_hidden) == 1:
-            print("this must not run")
-            hidden_layer = [{'weights':[random.random() for i in range(n_inputs + 1)]} for i in range(x)]
-            network.append(hidden_layer)
-        else:
-            if index==0:
-                print("index is zero")
-                hidden_layer = [{'weights':[random.random() for i in range(n_inputs + 1)]} for i in range(x)]
-                network.append(hidden_layer)
-            else:
-                hidden_layer = [{'weights':[random.random() for i in range(n_hidden[index-1] + 1)]} for i in range(x)]
-                network.append(hidden_layer)
-    output_layer = [{'weights':[random.random() for i in range(n_hidden[-1] + 1)]} for i in range(n_outputs)]
-    network.append(output_layer)
-    i= 1
-    print("\n The initialised Neural Network:\n")
-    for layer in network:
-        j=1
-        for sub in layer:
-            print("\n Layer[%d] Node[%d]:\n" %(i,j),sub)
-            j=j+1
-        i=i+1
-    return network
-
-
-# Backpropagate error and store in neurons
-def backward_propagate_error(network, expected,n):
-    for i in reversed(range(len(network))):
-        layer = network[i]
-        #print(layer)
-        errors = list()
-
-        if i != len(network)-1:
-            for j in range(len(layer)):
-                error = 0.0
-                for neuron in network[i + 1]:
-                    error += (neuron['weights'][j] * neuron['delta'])
-                errors.append(error)
-        else:
-            for j in range(len(layer)):
-                neuron = layer[j]
-                errors.append(expected[j] - neuron['output'])
-
-        for j in range(len(layer)):
-            neuron = layer[j]
-            neuron['delta'] = errors[j] * transfer_derivative(neuron['output'])
-
-            if i == len(network)-1 :
-                if regulerization == 'L2':
-                    rg = np.sum(network[i][j]['weights']) / n
-                if regulerization == 'L1':
-                    rg = np.sum(np.where(np.array(network[i][j]['weights'])<0,-1,1)) / n
-                neuron['delta'] += lamda * rg
-
-
-# Update network weights with error
-def update_weights(network, row, l_rate):
-    for i in range(len(network)):
-        inputs = row
-        if i != 0:
-            inputs = [neuron['output'] for neuron in network[i - 1]]
-        for neuron in network[i]:
-            for j in range(len(inputs)):
-                neuron['weights'][j] += l_rate * neuron['delta'] * inputs[j]
-            neuron['weights'][-1] += l_rate * neuron['delta']
-
-
-# Train a network for a fixed number of epochs
-def train_network(network, Xtrain,YTrain, l_rate, n_epoch, n_outputs):
-
-    print("\n Network Training Begins:\n")
-
-    for epoch in range(n_epoch):
-        sum_error = 0
-        n = len(Xtrain)
-        for Xtrain_,YTrain_ in zip(Xtrain,YTrain):
-            outputs = forward_propagate(network, Xtrain_)
-            expected = [0 for i in range(n_outputs)]
-            expected[YTrain_] = 1
-            sum_error += sum([(expected[i]-outputs[i])**2 for i in range(len(expected))])
-            backward_propagate_error(network, expected,n)
-            update_weights(network, Xtrain_, l_rate)
-        #print('>epoch=%d, lrate=%.3f, error=%.3f' % (epoch, l_rate, sum_error))
-
-    print("\n Network Training Ends:\n")
-
-
-
-
-from math import exp
-
-# Calculate neuron activation for an input
-def activate(weights, inputs):
-    activation = weights[-1]
-    for i in range(len(weights)-1):
-        activation += weights[i] * inputs[i]
-    return activation
-
-# Transfer neuron activation
-def transfer(activation):
-    return 1.0 / (1.0 + np.exp(-activation))
-
-# Calculate the derivative of an neuron output
-def transfer_derivative(output):
-    return output * (1.0 - output)
-
-# Forward propagate input to a network output
-def forward_propagate(network, row):
-    inputs = row
-    for layer in network:
-        new_inputs = []
-        for i,neuron in enumerate(layer):
-            neuron = layer[i]
-            activation = activate(neuron['weights'], inputs)
-            neuron['output'] = transfer(activation)
-            new_inputs.append(neuron['output'])
-        inputs = new_inputs
-    inputs = np.array(inputs)
-    #inputs = np.exp(inputs)/sum(np.exp(inputs))
-    return inputs
-
-# Make a prediction with a network
-def predict(network, XTest):
-    outputs = forward_propagate(network, XTest)
-    return list(outputs).index(max(outputs))
-
-
-
-#Test training backprop algorithm
-seed(2)
-
 numberofInputs,numberofInputfeatures = XTrain.shape
-numberofoutputs =4
-lamda = 10
-regulerization = 'L2'
-n_inputs = numberofInputfeatures
-print("\n Number of Inputs :\n",n_inputs)
-n_outputs = numberofoutputs
-print("\n Number of Outputs :\n",n_outputs)
+numberofoutputFeatures =len(numpy.unique(y))
 
-#Network Initialization
-network = initialize_network(n_inputs, [5], n_outputs)
+alpha = 0.1
+maxIteration =1000
+hiddenLayers = [5]
 
-# Training the Network
-train_network(network, XTrain,YTrain, 0.1, 1000, n_outputs)
 
-print("\n Final Neural Network :")
 
-i= 1
-for layer in network:
-    j=1
-    for sub in layer:
-        print("\n Layer[%d] Node[%d]:\n" %(i,j),sub)
-        j=j+1
-    i=i+1
-    
+
+
+
+clf = NeuralNetwork(numberofInputfeatures, hiddenLayers, numberofoutputFeatures)
+
+clf.fit( XTrain, YTrain, alpha, maxIteration, numberofoutputFeatures)
+
+
 
 predictionList = []
 for XTest_,YTest_ in zip(XTest,YTest):
-    prediction = predict(network, XTest_)
+    prediction = clf.predict(XTest_)
     predictionList.append(prediction)
-    print('Expected=%d, Got=%d' % (YTest_, prediction))
-print(YTest.values.tolist())
-print(predictionList)
-print(numpy.unique(YTrain))
+
+#print(YTest.values.tolist())
+#print(predictionList)
+#print(numpy.unique(YTrain))
 print(classification_report(YTest.values.tolist(), predictionList, labels=numpy.unique(YTrain)))
-print()
-print(sns.heatmap(confusion_matrix(YTest.values.tolist(), predictionList),annot=True));
+
+sns.heatmap(confusion_matrix(YTest.values.tolist(), predictionList),annot=True)
 plt.show()
+#roc_auc_score(YTest.values.tolist(), predictionList)
+
+#fpr, tpr, thresholds = metrics.roc_curve()
+print(clf.multiclass_roc_auc_score(YTest.values.tolist(), predictionList))
+
+
+

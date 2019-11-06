@@ -9,8 +9,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report
 import warnings
 import matplotlib.pyplot as plt
-warnings.filterwarnings('ignore')
+from sklearn.preprocessing import LabelBinarizer
 
+warnings.filterwarnings('ignore')
+from sklearn.metrics import roc_auc_score
+from sklearn import metrics
 class NeuralNetwork:
     def __init__(self,inputNeurons, hiddenLayers, outputNeurons):
         self.neuralNetwork = self.buildNetwork(inputNeurons, hiddenLayers, outputNeurons)
@@ -61,19 +64,19 @@ class NeuralNetwork:
             cost = list()
 
             if layerCounter != len(network)-1:
-                for j in range(len(layer)):
-                    error = 0.0
+                for layerIterator in range(len(layer)):
+                    smallDelta = 0
                     for neuron in network[layerCounter + 1]:
-                        error += (neuron['thetas'][j] * neuron['delta'])
-                    cost.append(error)
+                        smallDelta += (neuron['thetas'][layerIterator] * neuron['delta'])
+                    cost.append(smallDelta)
             else:
-                for j in range(len(layer)):
-                    neuron = layer[j]
-                    cost.append(expected[j] - neuron['output'])
+                for layerIterator in range(len(layer)):
+                    neuron = layer[layerIterator]
+                    cost.append(expected[layerIterator] - neuron['output'])
 
-            for j in range(len(layer)):
-                neuron = layer[j]
-                neuron['delta'] = cost[j] * self.sigmoidDerivative(neuron['output'])
+            for layerIterator in range(len(layer)):
+                neuron = layer[layerIterator]
+                neuron['delta'] = cost[layerIterator] * self.sigmoidDerivative(neuron['output'])
 
 
 
@@ -91,20 +94,11 @@ class NeuralNetwork:
     def fit(self, Xtrain, YTrain, alpha, MAX_ITER, numberOfClassesToPredict):
 
         for iterationCounter in range(MAX_ITER):
-            #costDuringTraining = 0
             for Xtrain_,YTrain_ in zip(Xtrain,YTrain):
-                #outputs = self.feedForwardPropagation(self.neuralNetwork, Xtrain_)
                 self.feedForwardPropagation(self.neuralNetwork, Xtrain_)
                 oneHotEncodedOutput = self.oneHotEncoding(YTrain_,numberOfClassesToPredict)
-                #costDuringTraining += sum([(oneHotEncodedOutput[encodedOutputCounter]-outputs[encodedOutputCounter])**2 for encodedOutputCounter in range(len(oneHotEncodedOutput))])
                 self.backPropagation(self.neuralNetwork, oneHotEncodedOutput)
                 self.updateThetas(self.neuralNetwork, Xtrain_, alpha)
-
-
-
-
-
-
 
 
     def oneHotEncoding(self,YTrain_,numberOfClassesToPredict):
@@ -129,7 +123,13 @@ class NeuralNetwork:
         softmaxPredictions = self.feedForwardPropagation(self.neuralNetwork, X)
         return softmaxPredictions.index(max(softmaxPredictions))
     seed(2)
-
+    #below code is copied from internet
+    def multiclass_roc_auc_score(self,y_test, y_pred, average="macro"):
+        lb = LabelBinarizer()
+        lb.fit(y_test)
+        y_test = lb.transform(y_test)
+        y_pred = lb.transform(y_pred)
+        return roc_auc_score(y_test, y_pred, average=average)
 
 
 
@@ -156,7 +156,7 @@ numberofoutputFeatures =len(numpy.unique(y))
 
 alpha = 0.1
 maxIteration =1000
-hiddenLayers = [5,7]
+hiddenLayers = [5]
 
 
 
@@ -181,3 +181,10 @@ print(classification_report(YTest.values.tolist(), predictionList, labels=numpy.
 
 sns.heatmap(confusion_matrix(YTest.values.tolist(), predictionList),annot=True)
 plt.show()
+#roc_auc_score(YTest.values.tolist(), predictionList)
+
+#fpr, tpr, thresholds = metrics.roc_curve()
+print(clf.multiclass_roc_auc_score(YTest.values.tolist(), predictionList))
+
+
+

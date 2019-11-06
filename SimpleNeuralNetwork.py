@@ -8,20 +8,27 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report
 import warnings
+import matplotlib.pyplot as plt
 warnings.filterwarnings('ignore')
+#seed(2)
 def initialize_network(n_inputs, n_hidden, n_outputs):
     network = list()
-
+    input_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_inputs + 1)]} for i in range(n_inputs)]
+    network.append(input_layer)
     for index,x in enumerate(n_hidden):
+        print("important logic",index,x)
         if len(n_hidden) == 1:
+            print("this must not run")
             hidden_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_inputs + 1)]} for i in range(x)]
             network.append(hidden_layer)
         else:
             if index==0:
+                print("index is zero")
                 hidden_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_inputs + 1)]} for i in range(x)]
                 network.append(hidden_layer)
-            hidden_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_hidden[index-1] + 1)]} for i in range(x)]
-            network.append(hidden_layer)
+            else:
+                hidden_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_hidden[index-1] + 1)]} for i in range(x)]
+                network.append(hidden_layer)
     output_layer = [{'weights':[random.uniform(-0.5,0.5) for i in range(n_hidden[-1] + 1)]} for i in range(n_outputs)]
     network.append(output_layer)
     i= 1
@@ -165,7 +172,7 @@ ynonfactor = dataWithColumnsRequiredWithoutNull.LEVEL
 y= dataWithColumnsRequiredWithoutNull.LEVEL.replace(to_replace=['A', 'B','C','D'], value=[0,1,2,3])
 
 #print()
-XTrain,XTest,YTrain,YTest = train_test_split(x,y,test_size=0.2)
+XTrain,XTest,YTrain,YTest = train_test_split(x,y,test_size=0.2,shuffle=False)
 numberofInputs,numberofInputfeatures = XTrain.shape
 numberofoutputs =4
 
@@ -175,10 +182,10 @@ n_outputs = numberofoutputs
 print("\n Number of Outputs :\n",n_outputs)
 
 #Network Initialization
-network = initialize_network(n_inputs, [5], n_outputs)
+network = initialize_network(n_inputs, [6,5], n_outputs)
 
 # Training the Network
-train_network(network, XTrain,YTrain, 0.5, 1, n_outputs)
+train_network(network, XTrain,YTrain, 0.1, 1000, n_outputs)
 
 
 print("\n Final Neural Network :")
@@ -201,3 +208,4 @@ print(numpy.unique(YTrain))
 print(classification_report(YTest.values.tolist(), predictionList, labels=numpy.unique(YTrain)))
 
 print(sns.heatmap(confusion_matrix(YTest.values.tolist(), predictionList),annot=True));
+plt.show()
